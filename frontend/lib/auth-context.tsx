@@ -11,6 +11,9 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (token: string, password: string) => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -67,8 +70,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     toast.success('Logged out');
   };
 
+  const forgotPassword = async (email: string) => {
+    try {
+      await authAPI.forgotPassword(email);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to send reset email');
+      throw err;
+    }
+  };
+
+  const resetPassword = async (token: string, password: string) => {
+    try {
+      await authAPI.resetPassword(token, password);
+      toast.success('Password reset successful!');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to reset password');
+      throw err;
+    }
+  };
+
+  const deleteAccount = async () => {
+    try {
+      await authAPI.deleteAccount();
+      localStorage.removeItem('token');
+      setToken(null);
+      setIsAuthenticated(false);
+      toast.success('Account deleted');
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to delete account');
+      throw err;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, token, isLoading, login, register, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, token, isLoading, login, register, logout, forgotPassword, resetPassword, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   );

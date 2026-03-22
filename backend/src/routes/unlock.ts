@@ -9,6 +9,7 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import prisma from '../db/prisma';
+import { unlockLimiter } from '../middleware/rateLimit';
 import logger from '../utils/logger';
 
 const router = Router();
@@ -112,7 +113,7 @@ router.get('/:shortUrl/unlock', async (req: Request, res: Response) => {
  *       401: { description: Wrong password }
  *       404: { description: URL not found }
  */
-router.post('/:shortUrl/unlock', async (req: Request, res: Response) => {
+router.post('/:shortUrl/unlock', unlockLimiter, async (req: Request, res: Response) => {
   const { shortUrl } = req.params;
   const { password } = req.body;
 

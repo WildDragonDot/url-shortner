@@ -139,28 +139,28 @@ export default function AnalyticsPage() {
       ]);
 
       // Transform breakdown data - backend returns 'label' not specific keys
-      setCountryData((countryRes.data || []).map((item: any) => ({
+      setCountryData((countryRes.data || []).filter((item: any) => item.label && item.label !== 'Unknown').map((item: any) => ({
         country: item.label,
         count: item.count
       })));
       
-      setDeviceData((deviceRes.data || []).map((item: any) => ({
+      setDeviceData((deviceRes.data || []).filter((item: any) => item.label && item.label !== 'Unknown').map((item: any) => ({
         device: item.label,
         count: item.count
       })));
       
-      setBrowserData((browserRes.data || []).map((item: any) => ({
+      setBrowserData((browserRes.data || []).filter((item: any) => item.label && item.label !== 'Unknown').map((item: any) => ({
         browser: item.label,
         count: item.count
       })));
 
-      setOsData((osRes.data || []).map((item: any) => ({
+      setOsData((osRes.data || []).filter((item: any) => item.label && item.label !== 'Unknown').map((item: any) => ({
         os: item.label,
         count: item.count
       })));
 
       setReferrerData((referrerRes.data || []).map((item: any) => ({
-        referrer: item.label === 'null' ? 'Direct' : item.label,
+        referrer: (!item.label || item.label === 'null' || item.label === 'Unknown') ? 'Direct' : item.label,
         count: item.count
       })));
       
@@ -244,6 +244,33 @@ export default function AnalyticsPage() {
     ? (totalClicks / Math.max(1, Math.ceil((Date.now() - new Date(urlInfo.created_at).getTime()) / (1000 * 60 * 60 * 24)))).toFixed(1)
     : '0';
 
+  const exportCSV = () => {
+    const rows = [
+      ['Metric', 'Value'],
+      ['Total Clicks', totalClicks],
+      ['Unique Clicks', uniqueClicks],
+      ['Clicks Today', clicksToday],
+      ['Clicks This Week', clicksThisWeek],
+      ['Clicks This Month', clicksThisMonth],
+      [''],
+      ['Date', 'Clicks'],
+      ...timeseriesData.map((d: any) => [d.date || d.period, d.clicks || d.count || 0]),
+      [''],
+      ['Country', 'Clicks'],
+      ...countryData.map((d: any) => [d.country, d.count]),
+      [''],
+      ['Device', 'Clicks'],
+      ...deviceData.map((d: any) => [d.device, d.count]),
+    ];
+    const csv = rows.map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `analytics-${code}.csv`; a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Analytics exported!');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-4 sm:py-8 px-3 sm:px-4">
       <div className="max-w-7xl mx-auto">
@@ -265,6 +292,13 @@ export default function AnalyticsPage() {
                   <div className="flex items-center gap-2 mb-2 sm:mb-3">
                     <Activity className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" />
                     <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900">Analytics</h1>
+                    <button
+                      onClick={exportCSV}
+                      className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition"
+                      title="Export CSV"
+                    >
+                      <Download className="w-3.5 h-3.5" /> Export CSV
+                    </button>
                   </div>
                   <div className="space-y-2 sm:space-y-3">
                     {/* Short URL */}

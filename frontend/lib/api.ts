@@ -34,6 +34,16 @@ export const authAPI = {
   
   login: (email: string, password: string) =>
     api.post('/auth/login', { email, password }),
+
+  logout: () => api.post('/auth/logout'),
+
+  forgotPassword: (email: string) =>
+    api.post('/auth/forgot-password', { email }),
+
+  resetPassword: (token: string, password: string) =>
+    api.post('/auth/reset-password', { token, password }),
+
+  deleteAccount: () => api.delete('/auth/account'),
 };
 
 // ─── URLs ────────────────────────────────────────────────────────
@@ -58,6 +68,9 @@ export const urlAPI = {
   delete: (code: string) => api.delete(`/urls/${code}`),
 
   toggle: (code: string) => api.patch(`/urls/${code}/toggle`),
+
+  bulkDelete: (codes: string[]) =>
+    Promise.all(codes.map(code => api.delete(`/urls/${code}`))),
 };
 
 // ─── Analytics ───────────────────────────────────────────────────

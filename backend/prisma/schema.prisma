@@ -25,10 +25,12 @@ datasource db {
 // ─── USERS ──────────────────────────────────────────────────────
 // Registered users — apni URLs manage kar sakte hain
 model User {
-  id           BigInt    @id @default(autoincrement())
-  email        String    @unique @db.VarChar(255)
-  passwordHash String    @map("password_hash") @db.VarChar(255)
-  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  id                   BigInt    @id @default(autoincrement())
+  email                String    @unique @db.VarChar(255)
+  passwordHash         String    @map("password_hash") @db.VarChar(255)
+  resetTokenHash       String?   @map("reset_token_hash") @db.VarChar(255)
+  resetTokenExpiresAt  DateTime? @map("reset_token_expires_at") @db.Timestamptz()
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz()
 
   // Relations
   urls         Url[]

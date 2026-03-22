@@ -69,3 +69,15 @@ export const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders:   false,
 });
+
+/**
+ * Password unlock ke liye strict limit.
+ * 5 attempts per 15 minutes per IP — brute force se bachao.
+ */
+export const unlockLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max:      5,
+  message:  { error: 'Too many unlock attempts. Please wait 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders:   false,
+});

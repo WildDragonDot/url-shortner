@@ -32,10 +32,11 @@ interface URLItem {
   created_at: string;
   expires_at?: string;
   has_password?: boolean;
+  og_title?: string;
 }
 
 export default function DashboardPage() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, deleteAccount } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<DashboardTab>('urls');
   const [urls, setUrls] = useState<URLItem[]>([]);
@@ -49,6 +50,8 @@ export default function DashboardPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createForm, setCreateForm] = useState({ long_url: '', custom_code: '', password: '', expires_at: '' });
   const [stats, setStats] = useState({ total: 0, active: 0, totalClicks: 0, avgClicks: 0 });
+  const [selectedUrls, setSelectedUrls] = useState<Set<string>>(new Set());
+  const [showAccountModal, setShowAccountModal] = useState(false);
 
   useEffect(() => {
     if (isLoading) return;
@@ -83,6 +86,41 @@ export default function DashboardPage() {
   const handleToggle = async (code: string) => {
     try { await urlAPI.toggle(code); toast.success('Status updated'); fetchURLs(); }
     catch { toast.error('Failed to update'); }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedUrls.size === 0) return;
+    if (!confirm(`Delete ${selectedUrls.size} selected URL(s)?`)) return;
+    try {
+      await urlAPI.bulkDelete(Array.from(selectedUrls));
+      toast.success(`Deleted ${selectedUrls.size} URLs`);
+      setSelectedUrls(new Set());
+      fetchURLs();
+    } catch { toast.error('Failed to delete some URLs'); }
+  };
+
+  const toggleSelectUrl = (code: string) => {
+    setSelectedUrls(prev => {
+      const next = new Set(prev);
+      next.has(code) ? next.delete(code) : next.add(code);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedUrls.size === filteredUrls.length) {
+      setSelectedUrls(new Set());
+    } else {
+      setSelectedUrls(new Set(filteredUrls.map(u => u.code)));
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!confirm('Are you sure? This will permanently delete your account and ALL your URLs. This cannot be undone.')) return;
+    try {
+      await deleteAccount();
+      router.push('/');
+    } catch { /* handled in context */ }
   };
 
   const handleCreateURL = async (e: React.FormEvent) => {
@@ -151,13 +189,23 @@ export default function DashboardPage() {
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Dashboard</h1>
             <p className="text-sm text-slate-600 mt-0.5">Manage and track your shortened URLs</p>
           </div>
-          <button
-            onClick={() => { setActiveTab('urls'); setShowCreateModal(true); }}
-            className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl hover:shadow-lg transition-all font-semibold text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Create New URL
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowAccountModal(true)}
+              className="inline-flex items-center justify-center gap-2 px-3 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-50 transition text-sm font-medium"
+              title="Account Settings"
+            >
+              <Settings className="w-4 h-4" />
+              <span className="hidden sm:inline">Account</span>
+            </button>
+            <button
+              onClick={() => { setActiveTab('urls'); setShowCreateModal(true); }}
+              className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl hover:shadow-lg transition-all font-semibold text-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Create New URL
+            </button>
+          </div>
         </div>
 
         {/* Tab Navigation */}
@@ -240,6 +288,11 @@ export default function DashboardPage() {
                   <button onClick={fetchURLs} className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition flex-shrink-0" title="Refresh">
                     <RefreshCw className="w-4 h-4 text-slate-600" />
                   </button>
+                  {filteredUrls.length > 0 && (
+                    <button onClick={toggleSelectAll} className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition flex-shrink-0 text-xs font-medium text-slate-600 whitespace-nowrap px-3" title="Select All">
+                      {selectedUrls.size === filteredUrls.length ? 'Deselect All' : 'Select All'}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -290,10 +343,26 @@ export default function DashboardPage() {
 
               {/* URLs list */}
               <div className="lg:col-span-2 order-1 lg:order-2 space-y-3">
-                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <Link2 className="w-4 h-4 text-primary-600" />
-                  Your URLs ({totalCount})
-                </h2>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <Link2 className="w-4 h-4 text-primary-600" />
+                    Your URLs ({totalCount})
+                  </h2>
+                  {selectedUrls.size > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500">{selectedUrls.size} selected</span>
+                      <button
+                        onClick={handleBulkDelete}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-medium transition"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Delete Selected
+                      </button>
+                      <button onClick={() => setSelectedUrls(new Set())} className="text-xs text-slate-500 hover:text-slate-700">
+                        Clear
+                      </button>
+                    </div>
+                  )}
+                </div>
                 {filteredUrls.length === 0 ? (
                   <div className="bg-white rounded-2xl shadow-sm p-10 text-center border border-slate-200">
                     <Link2 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
@@ -307,8 +376,14 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   filteredUrls.map((url) => (
-                    <div key={url.code} className="bg-white rounded-xl sm:rounded-2xl shadow-sm p-3 sm:p-4 md:p-6 border border-slate-200 hover:border-primary-300 hover:shadow-md transition-all">
+                    <div key={url.code} className={`bg-white rounded-xl sm:rounded-2xl shadow-sm p-3 sm:p-4 md:p-6 border transition-all ${selectedUrls.has(url.code) ? 'border-primary-400 bg-primary-50/30' : 'border-slate-200 hover:border-primary-300 hover:shadow-md'}`}>
                       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                        <div className="flex items-start gap-2 sm:hidden">
+                          <input type="checkbox" checked={selectedUrls.has(url.code)} onChange={() => toggleSelectUrl(url.code)} className="mt-1 w-4 h-4 accent-primary-600 cursor-pointer" />
+                        </div>
+                        <div className="hidden sm:flex items-center">
+                          <input type="checkbox" checked={selectedUrls.has(url.code)} onChange={() => toggleSelectUrl(url.code)} className="w-4 h-4 accent-primary-600 cursor-pointer" />
+                        </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start gap-2 mb-2 flex-wrap">
                             <a href={url.short_url} target="_blank" rel="noopener noreferrer"
@@ -335,7 +410,8 @@ export default function DashboardPage() {
                               </span>
                             )}
                           </div>
-                          <p className="text-xs sm:text-sm text-slate-600 truncate mb-2">{url.long_url}</p>
+                          <p className="text-xs sm:text-sm text-slate-600 truncate mb-1">{url.long_url}</p>
+                          {url.og_title && <p className="text-xs text-slate-400 truncate mb-2 italic">{url.og_title}</p>}
                           <div className="flex items-center gap-3 flex-wrap text-xs text-slate-500 mb-3">
                             <span className="flex items-center gap-1 font-medium"><MousePointerClick className="w-3 h-3" />{url.click_count}</span>
                             <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(url.created_at).toLocaleDateString()}</span>
@@ -485,6 +561,36 @@ export default function DashboardPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Account Settings Modal */}
+        {showAccountModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-200 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-primary-600" /> Account Settings
+                </h2>
+                <button onClick={() => setShowAccountModal(false)} className="p-2 hover:bg-slate-100 rounded-lg transition">
+                  <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+                  <h3 className="text-sm font-semibold text-red-800 mb-1">Danger Zone</h3>
+                  <p className="text-xs text-red-600 mb-3">Permanently delete your account and all associated URLs, analytics, and data. This cannot be undone.</p>
+                  <button
+                    onClick={() => { setShowAccountModal(false); handleDeleteAccount(); }}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition"
+                  >
+                    <Trash2 className="w-4 h-4" /> Delete My Account
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}

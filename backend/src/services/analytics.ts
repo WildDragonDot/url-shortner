@@ -110,11 +110,13 @@ export async function getAnalyticsBreakdown(
 
   const total = grouped.reduce((sum, r) => sum + r._count._all, 0);
 
-  return grouped.map((r) => ({
-    label:      (r as any)[by] || 'Unknown',
-    count:      r._count._all,
-    percentage: total > 0 ? +((r._count._all / total) * 100).toFixed(2) : 0,
-  }));
+  return grouped
+    .filter((r) => (r as any)[by] !== null)  // null entries skip karo
+    .map((r) => ({
+      label:      (r as any)[by] || 'Other',
+      count:      r._count._all,
+      percentage: total > 0 ? +((r._count._all / total) * 100).toFixed(2) : 0,
+    }));
 }
 
 /**

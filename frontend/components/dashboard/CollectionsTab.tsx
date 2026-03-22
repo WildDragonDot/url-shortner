@@ -124,13 +124,13 @@ export default function CollectionsTab() {
                 </div>
               </div>
               <a
-                href={col.page_url}
+                href={`/u/${col.slug}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 text-xs text-primary-600 hover:underline"
               >
                 <ExternalLink className="w-3 h-3" />
-                {col.page_url}
+                /u/{col.slug}
               </a>
               <div className="mt-2">
                 <span className={`text-xs px-2 py-0.5 rounded-full ${
