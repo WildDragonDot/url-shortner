@@ -1,11 +1,17 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
 import { Link2, LogOut, LayoutDashboard, Home } from 'lucide-react';
 
 export default function Navbar() {
   const { isAuthenticated, isLoading, logout } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <nav className="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-slate-200/60 shadow-sm">
@@ -23,8 +29,8 @@ export default function Navbar() {
 
           {/* Nav Links */}
           <div className="flex items-center gap-1 xs:gap-2">
-            {isLoading ? (
-              // Placeholder to prevent layout shift
+            {!mounted || isLoading ? (
+              // Placeholder to prevent layout shift and hydration mismatch
               <div className="flex items-center gap-1 xs:gap-2">
                 <div className="w-12 xs:w-16 h-8 xs:h-10 bg-slate-100 rounded-lg xs:rounded-xl animate-pulse" />
                 <div className="w-14 xs:w-20 h-8 xs:h-10 bg-slate-100 rounded-lg xs:rounded-xl animate-pulse" />
