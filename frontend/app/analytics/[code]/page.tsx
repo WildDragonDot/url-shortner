@@ -16,6 +16,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import QRCustomizer from '@/components/QRCustomizer';
 
 const COLORS = ['#3b82f6', '#60a5fa', '#93c5fd', '#10b981', '#f59e0b', '#ef4444'];
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export default function AnalyticsPage() {
   const params = useParams();
@@ -179,7 +180,7 @@ export default function AnalyticsPage() {
   };
 
   const shareQRCode = async () => {
-    const shortUrl = `http://localhost:3000/${code}`;
+    const shortUrl = `${BASE_URL}/${code}`;
     
     if (navigator.share) {
       try {
@@ -307,17 +308,17 @@ export default function AnalyticsPage() {
                       <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1 block">Short URL</label>
                       <div className="flex items-center gap-2">
                         <a
-                          href={`http://localhost:3000/${code}`}
+                          href={`${BASE_URL}/${code}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-primary-600 font-semibold hover:text-primary-700 flex items-center gap-1 hover:underline text-sm sm:text-base md:text-lg break-all"
                         >
-                          <span className="hidden sm:inline">http://localhost:3000/{code}</span>
+                          <span className="hidden sm:inline">{BASE_URL}/{code}</span>
                           <span className="sm:hidden">{code}</span>
                           <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                         </a>
                         <button
-                          onClick={() => copyToClipboard(`http://localhost:3000/${code}`)}
+                          onClick={() => copyToClipboard(`${BASE_URL}/${code}`)}
                           className="p-1.5 hover:bg-slate-100 rounded-lg transition flex-shrink-0"
                           title="Copy URL"
                         >
@@ -455,7 +456,7 @@ export default function AnalyticsPage() {
                 <div className="relative p-3 sm:p-4 bg-white border-2 border-slate-200 rounded-2xl shadow-sm">
                   <QRCodeSVG 
                     id={`qr-${code}`}
-                    value={`http://localhost:3000/${code}`}
+                    value={`${BASE_URL}/${code}`}
                     size={140}
                     level="H"
                     includeMargin={true}
@@ -474,7 +475,7 @@ export default function AnalyticsPage() {
                 
                 <div className="flex flex-wrap gap-2">
                   <a
-                    href={`http://localhost:3000/${code}/qr?format=png&size=512`}
+                    href={`${BASE_URL}/${code}/qr?format=png&size=512`}
                     download={`qr-${code}.png`}
                     className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg sm:rounded-xl transition-all font-medium text-xs sm:text-sm shadow-sm"
                   >
@@ -484,7 +485,7 @@ export default function AnalyticsPage() {
                   </a>
                   
                   <a
-                    href={`http://localhost:3000/${code}/qr?format=svg`}
+                    href={`${BASE_URL}/${code}/qr?format=svg`}
                     download={`qr-${code}.svg`}
                     className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg sm:rounded-xl transition-all font-medium text-xs sm:text-sm"
                   >
@@ -556,7 +557,7 @@ export default function AnalyticsPage() {
               Share your short URL to start collecting analytics data
             </p>
             <button
-              onClick={() => copyToClipboard(`http://localhost:3000/${code}`)}
+              onClick={() => copyToClipboard(`${BASE_URL}/${code}`)}
               className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition font-semibold"
             >
               <Copy className="w-5 h-5" />
@@ -1028,7 +1029,7 @@ export default function AnalyticsPage() {
         <div className="mt-8">
           <QRCustomizer
             code={code}
-            shortUrl={urlInfo.short_url || `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/${code}`}
+            shortUrl={urlInfo.short_url || `${BASE_URL}/${code}`}
           />
         </div>
       )}
