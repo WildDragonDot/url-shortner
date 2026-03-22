@@ -15,6 +15,8 @@ import { validate } from '../middleware/validate';
 import { createUrlSchema, bulkCreateSchema } from '../utils/validation';
 import bcrypt from 'bcryptjs';
 import logger from '../utils/logger';
+import { fetchAndSaveOGTags } from '../services/ogFetcher';
+import { isMaliciousUrl } from '../services/maliciousCheck';
 
 const router = Router();
 
@@ -66,6 +68,12 @@ router.post('/create', authMiddleware, validate(createUrlSchema), async (req: Re
   let finalUrl = utm ? appendUTMParams(url, utm) : url;
 
   try {
+    // Malicious URL check
+    const malCheck = await isMaliciousUrl(finalUrl);
+    if (malCheck.malicious) {
+      return res.status(400).json({ error: `URL flagged as malicious: ${malCheck.reason}` });
+    }
+
     // Dedup check — same user ki same URL
     if (req.userId) {
       const existing = await prisma.url.findFirst({
@@ -122,6 +130,9 @@ router.post('/create', authMiddleware, validate(createUrlSchema), async (req: Re
     const qrCode   = await generateQRBase64(shortUrl, { size: 256 });
 
     logger.info('URL created', { code, userId: req.userId?.toString() });
+
+    // OG tags async fetch karo (fire and forget)
+    fetchAndSaveOGTags(code!, finalUrl);
 
     return res.status(201).json({
       short_url:  shortUrl,

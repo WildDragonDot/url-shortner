@@ -42,7 +42,7 @@ export const createUrlSchema = z.object({
     .max(100, 'Password is too long')
     .optional(),
   expires_at: z.string()
-    .datetime('Invalid date format')
+    .refine((date) => !isNaN(Date.parse(date)), 'Invalid date format')
     .refine((date) => new Date(date) > new Date(), 'Expiry date must be in the future')
     .optional(),
   utm: z.object({
@@ -75,7 +75,7 @@ export const updateUrlSchema = z.object({
     .max(2048, 'URL is too long')
     .optional(),
   expires_at: z.string()
-    .datetime('Invalid date format')
+    .refine((date) => !isNaN(Date.parse(date)), 'Invalid date format')
     .nullable()
     .optional(),
 });
@@ -164,7 +164,7 @@ export const createApiKeySchema = z.object({
     .max(100, 'Name is too long')
     .optional(),
   expires_at: z.string()
-    .datetime('Invalid date format')
+    .refine((date) => !isNaN(Date.parse(date)), 'Invalid date format')
     .refine((date) => new Date(date) > new Date(), 'Expiry date must be in the future')
     .optional(),
 });

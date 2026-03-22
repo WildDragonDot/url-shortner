@@ -4,7 +4,6 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
 import { Toaster } from "react-hot-toast";
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import AnimatedBackground from "@/components/AnimatedBackground";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -26,7 +25,6 @@ export default function RootLayout({
           <AnimatedBackground />
           <Navbar />
           <main className="relative z-10 flex-1">{children}</main>
-          <Footer />
           <Toaster position="top-right" />
         </AuthProvider>
       </body>

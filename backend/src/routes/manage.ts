@@ -17,6 +17,53 @@ router.use(requireAuth);     // Then check if authenticated
 
 /**
  * @swagger
+ * /urls/{code}:
+ *   get:
+ *     tags: [URLs]
+ *     summary: Single URL ka detail dekho
+ *     parameters:
+ *       - in: path
+ *         name: code
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200: { description: URL detail }
+ *       404: { description: Not found }
+ */
+router.get('/:code', async (req: Request, res: Response) => {
+  const { code } = req.params;
+  try {
+    const url = await prisma.url.findUnique({
+      where:  { shortUrl: code },
+      select: {
+        shortUrl: true, longUrl: true, status: true, userId: true,
+        expiresAt: true, createdAt: true, ogTitle: true, ogImage: true,
+        passwordHash: true,
+        _count: { select: { analytics: true } },
+      },
+    });
+    if (!url || url.status === 'deleted') return res.status(404).json({ error: 'URL not found' });
+    if (url.userId !== req.userId) return res.status(403).json({ error: 'Access denied' });
+
+    return res.json({
+      code:        url.shortUrl,
+      short_url:   `${process.env.BASE_URL}/${url.shortUrl}`,
+      long_url:    url.longUrl,
+      status:      url.status,
+      expires_at:  url.expiresAt,
+      created_at:  url.createdAt,
+      og_title:    url.ogTitle,
+      click_count: url._count.analytics,
+      has_password: !!url.passwordHash,
+    });
+  } catch (err) {
+    logger.error('Get URL error', { error: (err as Error).message });
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * @swagger
  * /urls:
  *   get:
  *     tags: [URLs]

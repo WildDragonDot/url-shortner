@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import URLShortener from '@/components/URLShortener';
 import { Link2, BarChart3, Shield, Zap, Sparkles } from 'lucide-react';
+import Footer from '@/components/Footer';
 import { useAuth } from '@/lib/auth-context';
 import { useRouter } from 'next/navigation';
 
@@ -19,7 +20,7 @@ export default function Home() {
     if (mounted && !isLoading && isAuthenticated) {
       router.push('/dashboard');
     }
-  }, [isAuthenticated, isLoading, router, mounted]);
+  }, [isAuthenticated, isLoading, mounted]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Show loading state during SSR and initial client render
   if (!mounted || isLoading) {
@@ -128,6 +129,7 @@ export default function Home() {
           </a>
         </div>
       </section>
+      <Footer />
     </div>
   );
 }
