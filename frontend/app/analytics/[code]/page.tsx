@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
+import QRCustomizer from '@/components/QRCustomizer';
 
 const COLORS = ['#3b82f6', '#60a5fa', '#93c5fd', '#10b981', '#f59e0b', '#ef4444'];
 
@@ -1022,6 +1023,16 @@ export default function AnalyticsPage() {
           </div>
         )}
       </div>
+
+      {/* QR Customizer */}
+      {urlInfo && (
+        <div className="mt-8">
+          <QRCustomizer
+            code={code}
+            shortUrl={urlInfo.short_url || `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/${code}`}
+          />
+        </div>
+      )}
 
       {/* Edit Modal */}
       {showEditModal && urlInfo && (

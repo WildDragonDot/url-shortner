@@ -36,6 +36,9 @@ router.get('/:shortUrl/qr', async (req: Request, res: Response) => {
   const format = (req.query.format as string) === 'svg' ? 'svg' : 'png';
   const size   = Math.min(Math.max(parseInt(req.query.size as string) || 256, 64), 1024);
   const logo   = req.query.logo === 'true';
+  const dark   = (req.query.dark  as string) || '#000000';
+  const light  = (req.query.light as string) || '#ffffff';
+  const ecl    = (['L','M','Q','H'].includes(req.query.ecl as string) ? req.query.ecl : 'M') as 'L'|'M'|'Q'|'H';
 
   try {
     // URL exist karta hai? Expired toh nahi?
@@ -56,14 +59,13 @@ router.get('/:shortUrl/qr', async (req: Request, res: Response) => {
     const targetUrl = `${process.env.BASE_URL}/${shortUrl}?ref=qr`;
 
     if (format === 'svg') {
-      const svg = await generateQRSvg(targetUrl);
+      const svg = await generateQRSvg(targetUrl, { darkColor: dark, lightColor: light, errorCorrection: ecl });
       res.setHeader('Content-Type', 'image/svg+xml');
       res.setHeader('Content-Disposition', `attachment; filename="qr-${shortUrl}.svg"`);
       return res.send(svg);
     }
 
-    // PNG
-    const qrBuffer = await generateQRBuffer(targetUrl, { size, logo });
+    const qrBuffer = await generateQRBuffer(targetUrl, { size, logo, darkColor: dark, lightColor: light, errorCorrection: ecl });
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Content-Disposition', `attachment; filename="qr-${shortUrl}.png"`);
     // Cache karo — 1 hour (same QR baar baar generate na karna pade)
