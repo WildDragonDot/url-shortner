@@ -1,0 +1,219 @@
+// ============================================================
+// Prisma Schema — URL Shortener
+// ============================================================
+// Prisma kya hai?
+//   ORM (Object Relational Mapper) — SQL likhne ki jagah
+//   TypeScript objects se DB operations karo.
+//   Type-safe queries, auto-migrations, aur Prisma Client generate hota hai.
+//
+// Commands:
+//   npx prisma migrate dev   → Migration create + apply karo (dev)
+//   npx prisma migrate deploy → Production mein migrations apply karo
+//   npx prisma generate      → Prisma Client regenerate karo
+//   npx prisma studio        → Visual DB browser
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── USERS ──────────────────────────────────────────────────────
+// Registered users — apni URLs manage kar sakte hain
+model User {
+  id           BigInt    @id @default(autoincrement())
+  email        String    @unique @db.VarChar(255)
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  // Relations
+  urls         Url[]
+  apiKeys      ApiKey[]
+  webhooks     Webhook[]
+  collections  Collection[]
+
+  @@map("users")
+}
+
+// ─── API KEYS ────────────────────────────────────────────────────
+// Developers ke liye programmatic access
+// Raw key sirf ek baar dikhate hain — DB mein SHA-256 hash store hota hai
+model ApiKey {
+  id         BigInt    @id @default(autoincrement())
+  userId     BigInt    @map("user_id")
+  keyHash    String    @unique @map("key_hash") @db.VarChar(255)
+  keyPrefix  String    @map("key_prefix") @db.VarChar(12)
+  name       String?   @db.VarChar(100)
+  lastUsed   DateTime? @map("last_used") @db.Timestamptz()
+  expiresAt  DateTime? @map("expires_at") @db.Timestamptz()
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+}
+
+// ─── URLS ────────────────────────────────────────────────────────
+// Core table — har short URL ka record
+model Url {
+  id            BigInt    @id @default(autoincrement())
+  shortUrl      String    @unique @map("short_url") @db.VarChar(16)
+  longUrl       String    @map("long_url") @db.Text
+  userId        BigInt?   @map("user_id")
+  status        UrlStatus @default(active)
+  passwordHash  String?   @map("password_hash") @db.VarChar(255)
+
+  // OG meta tags — WhatsApp/Slack preview ke liye (async fetch)
+  ogTitle       String?   @map("og_title") @db.Text
+  ogDescription String?   @map("og_description") @db.Text
+  ogImage       String?   @map("og_image") @db.Text
+  ogFetchedAt   DateTime? @map("og_fetched_at") @db.Timestamptz()
+
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  expiresAt     DateTime? @map("expires_at") @db.Timestamptz()
+
+  // Relations
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  analytics     Analytics[]
+  abTest        AbTest?
+  routingRules  RoutingRule[]
+  webhooks      Webhook[]
+  collectionLinks CollectionLink[]
+
+  @@index([shortUrl])   // Redirect ka critical path — fast lookup
+  @@index([longUrl])    // Dedup check ke liye
+  @@index([userId])     // Dashboard ke liye
+  @@map("urls")
+}
+
+// URL status enum
+enum UrlStatus {
+  active
+  disabled
+  deleted
+}
+
+// ─── ANALYTICS ───────────────────────────────────────────────────
+// Har redirect ka record — async insert (redirect slow nahi hota)
+model Analytics {
+  id         BigInt    @id @default(autoincrement())
+  shortUrl   String    @map("short_url") @db.VarChar(16)
+  clickedAt  DateTime  @default(now()) @map("clicked_at") @db.Timestamptz()
+  ipAddress  String?   @map("ip_address") @db.VarChar(45)
+  userAgent  String?   @map("user_agent") @db.Text
+  source     String    @default("direct") @db.VarChar(20) // direct | qr_scan | api
+  referrer   String?   @db.VarChar(500)
+
+  // Geo data (geoip-lite se parse)
+  country    String?   @db.VarChar(2)
+  city       String?   @db.VarChar(100)
+
+  // Device data (ua-parser-js se parse)
+  device     String?   @db.VarChar(20)   // mobile | desktop | tablet
+  browser    String?   @db.VarChar(50)
+  os         String?   @db.VarChar(50)
+
+  // A/B testing
+  abVariant  String?   @map("ab_variant") @db.VarChar(10)
+
+  url        Url       @relation(fields: [shortUrl], references: [shortUrl], onDelete: Cascade)
+
+  @@index([shortUrl])
+  @@index([clickedAt])
+  @@map("analytics")
+}
+
+// ─── AB TESTS ────────────────────────────────────────────────────
+// Ek short URL se multiple destinations pe traffic split
+// variants JSON: [{ "url": "...", "weight": 50, "label": "A" }]
+model AbTest {
+  id        BigInt   @id @default(autoincrement())
+  shortUrl  String   @unique @map("short_url") @db.VarChar(16)
+  variants  Json     // JSONB — flexible structure
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  url       Url      @relation(fields: [shortUrl], references: [shortUrl], onDelete: Cascade)
+
+  @@map("ab_tests")
+}
+
+// ─── ROUTING RULES ───────────────────────────────────────────────
+// Geo/Device based smart redirect
+// Example: India → Hindi page, iOS → App Store
+model RoutingRule {
+  id         BigInt   @id @default(autoincrement())
+  shortUrl   String   @map("short_url") @db.VarChar(16)
+  ruleType   String   @map("rule_type") @db.VarChar(20) // geo | device | os
+  condition  String   @db.VarChar(50)                   // 'IN' | 'mobile' | 'iOS'
+  targetUrl  String   @map("target_url") @db.Text
+  priority   Int      @default(0)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  url        Url      @relation(fields: [shortUrl], references: [shortUrl], onDelete: Cascade)
+
+  @@map("routing_rules")
+}
+
+// ─── WEBHOOKS ────────────────────────────────────────────────────
+// Jab URL click ho toh external endpoint pe notify karo
+model Webhook {
+  id        BigInt   @id @default(autoincrement())
+  userId    BigInt   @map("user_id")
+  shortUrl  String?  @map("short_url") @db.VarChar(16) // NULL = sab URLs ke liye
+  endpoint  String   @db.Text
+  secret    String   @db.VarChar(64)
+  events    String[] @default(["click"])
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url       Url?     @relation(fields: [shortUrl], references: [shortUrl], onDelete: Cascade)
+
+  @@map("webhooks")
+}
+
+// ─── URL REPORTS ─────────────────────────────────────────────────
+// Users malicious/spam URLs report kar sakte hain
+model UrlReport {
+  id         BigInt   @id @default(autoincrement())
+  shortUrl   String   @map("short_url") @db.VarChar(16)
+  reason     String?  @db.VarChar(100) // phishing | spam | malware | other
+  reportedBy String?  @map("reported_by") @db.VarChar(45)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz()
+
+  @@map("url_reports")
+}
+
+// ─── COLLECTIONS ─────────────────────────────────────────────────
+// Link-in-Bio — short.ly/@username pe multiple links
+model Collection {
+  id          BigInt           @id @default(autoincrement())
+  userId      BigInt           @map("user_id")
+  slug        String           @unique @db.VarChar(50)
+  title       String?          @db.VarChar(100)
+  description String?          @db.Text
+  theme       String           @default("default") @db.VarChar(20)
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  links       CollectionLink[]
+
+  @@map("collections")
+}
+
+model CollectionLink {
+  id           BigInt     @id @default(autoincrement())
+  collectionId BigInt     @map("collection_id")
+  shortUrl     String     @map("short_url") @db.VarChar(16)
+  label        String?    @db.VarChar(100)
+  position     Int        @default(0)
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz()
+
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  url          Url        @relation(fields: [shortUrl], references: [shortUrl], onDelete: Cascade)
+
+  @@map("collection_links")
+}
