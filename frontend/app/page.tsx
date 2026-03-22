@@ -5,34 +5,16 @@ import URLShortener from '@/components/URLShortener';
 import { Link2, BarChart3, Shield, Zap, Sparkles } from 'lucide-react';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/lib/auth-context';
-import { useRouter } from 'next/navigation';
 
 export default function Home() {
-  const { isAuthenticated, isLoading } = useAuth();
-  const router = useRouter();
+  const { isLoading } = useAuth();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (mounted && !isLoading && isAuthenticated) {
-      router.push('/dashboard');
-    }
-  }, [isAuthenticated, isLoading, mounted]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Show loading state during SSR and initial client render
   if (!mounted || isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
-  // Don't render anything if redirecting
-  if (isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
