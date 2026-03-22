@@ -39,7 +39,7 @@ import unlockRoutes     from './routes/unlock';
 import apiKeyRoutes     from './routes/apiKeys';
 import healthRoutes     from './routes/health';
 import webhookRoutes    from './routes/webhooks';
-import collectionRoutes from './routes/collections';
+import collectionRoutes, { collectionPublicRouter } from './routes/collections';
 import reportRoutes     from './routes/report';
 import abTestRoutes     from './routes/abtest';
 import routingRoutes    from './routes/routing';
@@ -140,8 +140,10 @@ app.use('/api-keys', apiKeyRoutes);
 // Webhooks
 app.use('/webhooks', webhookRoutes);
 
-// Collections — /@username route redirect se PEHLE hona chahiye
-app.use('/', collectionRoutes);
+// Collections public page — /@username (no auth, redirect se PEHLE)
+app.use('/', collectionPublicRouter);
+
+// Collections CRUD — auth required
 app.use('/collections', collectionRoutes);
 
 // URL Reports

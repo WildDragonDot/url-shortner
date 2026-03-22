@@ -23,6 +23,7 @@ import { createCollectionSchema, updateCollectionSchema, addCollectionLinkSchema
 import logger from '../utils/logger';
 
 const router = Router();
+const publicRouter = Router();
 
 // ─── PUBLIC: Collection page ─────────────────────────────────────
 /**
@@ -41,7 +42,7 @@ const router = Router();
  *       200: { description: HTML page with all links }
  *       404: { description: Collection not found }
  */
-router.get('/@:username', async (req: Request, res: Response) => {
+publicRouter.get('/@:username', async (req: Request, res: Response) => {
   const { username } = req.params;
 
   try {
@@ -375,3 +376,4 @@ router.patch('/:slug/links/reorder', async (req: Request, res: Response) => {
 });
 
 export default router;
+export { publicRouter as collectionPublicRouter };
