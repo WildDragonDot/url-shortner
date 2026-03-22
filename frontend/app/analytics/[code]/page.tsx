@@ -56,7 +56,7 @@ export default function AnalyticsPage() {
         });
       }
     } catch (err) {
-      console.error('Failed to fetch URL info', err);
+      // Failed to fetch URL info silently
     }
   };
 
@@ -105,7 +105,7 @@ export default function AnalyticsPage() {
       } catch (err: any) {
         // No A/B test configured - that's okay
         if (err.response?.status !== 404) {
-          console.error('Failed to fetch A/B test', err);
+          // A/B test fetch failed silently
         }
       }
 
@@ -114,10 +114,10 @@ export default function AnalyticsPage() {
         const routingRes = await routingAPI.getAll(code);
         setRoutingRules(routingRes.data || []);
       } catch (err: any) {
-        console.error('Failed to fetch routing rules', err);
+        // Routing rules fetch failed silently
       }
     } catch (err) {
-      console.error('Failed to fetch advanced features', err);
+      // Advanced features fetch failed silently
     }
   };
 
@@ -167,7 +167,6 @@ export default function AnalyticsPage() {
       setTimeseriesData(timeseriesRes.data || []);
     } catch (err: any) {
       toast.error('Failed to load analytics');
-      console.error(err);
     } finally {
       setLoading(false);
     }

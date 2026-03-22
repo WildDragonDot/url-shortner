@@ -14,6 +14,7 @@
 
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
+import logger from '../utils/logger';
 
 // .env file se environment variables load karo
 dotenv.config();
@@ -41,11 +42,11 @@ const pool = new Pool({
  * Agar DB connect nahi hua toh early fail karo — baad mein confusing errors se bachao.
  */
 pool.on('connect', () => {
-  console.log('✅ PostgreSQL connected');
+  logger.info('PostgreSQL connected');
 });
 
 pool.on('error', (err) => {
-  console.error('❌ PostgreSQL pool error:', err.message);
+  logger.error('PostgreSQL pool error', { error: err.message });
 });
 
 export default pool;

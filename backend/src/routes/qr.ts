@@ -12,6 +12,7 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../db/prisma';
 import { generateQRBuffer, generateQRSvg } from '../services/qr';
+import logger from '../utils/logger';
 
 const router = Router();
 
@@ -69,7 +70,7 @@ router.get('/:shortUrl/qr', async (req: Request, res: Response) => {
     res.setHeader('Cache-Control', 'public, max-age=3600');
     return res.send(qrBuffer);
   } catch (err) {
-    console.error('QR generation error:', err);
+    logger.error('QR generation error', { error: (err as Error).message });
     return res.status(500).json({ error: 'Failed to generate QR code' });
   }
 });
@@ -128,7 +129,7 @@ router.get('/:shortUrl/qr/share', async (req: Request, res: Response) => {
       },
     });
   } catch (err) {
-    console.error('Share links error:', err);
+    logger.error('Share links error', { error: (err as Error).message });
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -170,7 +171,7 @@ router.get('/:shortUrl/qr/embed', async (req: Request, res: Response) => {
       image_url: qrImageUrl,
     });
   } catch (err) {
-    console.error('Embed code error:', err);
+    logger.error('Embed code error', { error: (err as Error).message });
     return res.status(500).json({ error: 'Internal server error' });
   }
 });

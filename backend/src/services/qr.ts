@@ -21,6 +21,7 @@ import QRCode from 'qrcode';
 import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs';
+import logger from '../utils/logger';
 
 /**
  * QR generation ke options.
@@ -60,7 +61,7 @@ export async function generateQRBuffer(url: string, opts: QROptions = {}): Promi
   // public/logo.png hona chahiye — agar nahi hai toh bina logo ke return karo
   const logoPath = path.join(process.cwd(), 'public', 'logo.png');
   if (!fs.existsSync(logoPath)) {
-    console.warn('Logo file not found at public/logo.png — returning QR without logo');
+    logger.warn('Logo file not found at public/logo.png — returning QR without logo');
     return qrBuffer;
   }
 
