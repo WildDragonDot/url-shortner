@@ -694,7 +694,6 @@ export default function AnalyticsPage() {
                       }))}
                     >
                       <RadialBar
-                        minAngle={15}
                         label={{ position: 'insideStart', fill: '#fff', fontSize: 12 }}
                         background
                         dataKey="count"
