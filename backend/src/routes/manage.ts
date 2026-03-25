@@ -81,13 +81,13 @@ router.get('/:code', async (req: Request, res: Response) => {
  *       401: { description: Authentication required }
  */
 router.get('/', async (req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'no-store');
   const page   = Math.max(1, parseInt(req.query.page as string) || 1);
   const limit  = Math.min(50, parseInt(req.query.limit as string) || 20);
   const skip   = (page - 1) * limit;
 
   try {
-    const [total, urls] = await Promise.all([
-      prisma.url.count({ where: { userId: req.userId, status: { not: 'deleted' } } }),
+    const [total, urls] = await Promise.all([      prisma.url.count({ where: { userId: req.userId, status: { not: 'deleted' } } }),
       prisma.url.findMany({
         where:   { userId: req.userId, status: { not: 'deleted' } },
         select: {
