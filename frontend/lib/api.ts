@@ -60,7 +60,9 @@ export const urlAPI = {
     api.post('/bulk/create', { urls }),
 
   getAll: (page = 1, limit = 20) =>
-    api.get(`/urls?page=${page}&limit=${limit}`),
+    api.get(`/urls?page=${page}&limit=${limit}`, {
+      headers: { 'Cache-Control': 'no-cache' },
+    }),
 
   update: (code: string, data: { long_url?: string; expires_at?: string }) =>
     api.patch(`/urls/${code}`, data),
