@@ -94,7 +94,7 @@ router.get('/:shortUrl', redirectLimiter, async (req: Request, res: Response) =>
     if (passwordHash) {
       const unlockToken = req.cookies?.[`unlock_${shortUrl}`];
       if (!unlockToken || unlockToken !== `unlocked_${shortUrl}`) {
-        return res.redirect(`/unlock?url=${shortUrl}`);
+        return res.redirect(`/${shortUrl}/unlock`);
       }
     }
 
