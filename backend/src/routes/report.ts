@@ -12,6 +12,7 @@ import { Router, Request, Response } from 'express';
 import prisma from '../db/prisma';
 import { validate } from '../middleware/validate';
 import { reportUrlSchema } from '../utils/validation';
+import { reportLimiter } from '../middleware/rateLimit';
 import logger from '../utils/logger';
 
 const router = Router();
@@ -46,7 +47,7 @@ const router = Router();
  *       404: { description: URL not found }
  *       429: { description: Already reported from this IP }
  */
-router.post('/:shortUrl/report', validate(reportUrlSchema), async (req: Request, res: Response) => {
+router.post('/:shortUrl/report', reportLimiter, validate(reportUrlSchema), async (req: Request, res: Response) => {
   const { shortUrl } = req.params;
   const { reason }   = req.body;
 

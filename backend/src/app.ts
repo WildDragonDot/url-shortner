@@ -51,6 +51,17 @@ dotenv.config();
 
 const app = express();
 
+// ─── TRUST PROXY ─────────────────────────────────────────────────
+// Render/Vercel/Cloudflare ke peeche real IP mile rate limiting ke liye
+app.set('trust proxy', 1);
+
+// ─── STARTUP SECURITY CHECK ──────────────────────────────────────
+if (process.env.NODE_ENV === 'production' && 
+    (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'change_this_to_a_strong_random_secret_in_production')) {
+  logger.error('FATAL: Weak JWT_SECRET in production. Set a strong secret and restart.');
+  process.exit(1);
+}
+
 // ─── 1. HELMET — Security headers ───────────────────────────────
 // XSS protection, clickjacking prevention, MIME sniffing block, etc.
 // Production mein yeh bahut zaroori hai.

@@ -52,6 +52,7 @@ router.get('/:shortUrl/preview', async (req: Request, res: Response) => {
         shortUrl:       true,
         longUrl:        true,
         status:         true,
+        passwordHash:   true,
         ogTitle:        true,
         ogDescription:  true,
         ogImage:        true,
@@ -73,13 +74,14 @@ router.get('/:shortUrl/preview', async (req: Request, res: Response) => {
 
     return res.json({
       short_url:      `${process.env.BASE_URL}/${record.shortUrl}`,
-      long_url:       record.longUrl,
-      og_title:       record.ogTitle       || null,
-      og_description: record.ogDescription || null,
-      og_image:       record.ogImage       || null,
+      long_url:       record.passwordHash ? '••••••••' : record.longUrl,
+      og_title:       record.passwordHash ? null : (record.ogTitle || null),
+      og_description: record.passwordHash ? null : (record.ogDescription || null),
+      og_image:       record.passwordHash ? null : (record.ogImage || null),
       og_fetched_at:  record.ogFetchedAt   || null,
       expires_at:     record.expiresAt     || null,
       created_at:     record.createdAt,
+      has_password:   !!record.passwordHash,
     });
   } catch (err) {
     logger.error('Preview error', { error: (err as Error).message });

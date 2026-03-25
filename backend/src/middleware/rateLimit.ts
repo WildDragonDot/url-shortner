@@ -47,15 +47,20 @@ export const authCreateLimiter = rateLimit({
 
 /**
  * Redirect endpoint ke liye limit.
- * 60 redirects per minute per IP.
- * DDoS attacks se bachao.
+ * 120 redirects per minute per IP — DDoS protection.
+ * trust proxy enabled hone pe real IP use hoga.
  */
 export const redirectLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max:      60,
+  max:      120,
   message:  { error: 'Too many requests. Please slow down.' },
   standardHeaders: true,
   legacyHeaders:   false,
+  keyGenerator: (req) => {
+    // X-Forwarded-For se real IP lo (Render/Vercel proxy ke liye)
+    const forwarded = req.headers['x-forwarded-for'] as string;
+    return forwarded ? forwarded.split(',')[0].trim() : (req.ip || 'unknown');
+  },
 });
 
 /**
@@ -78,6 +83,18 @@ export const unlockLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max:      5,
   message:  { error: 'Too many unlock attempts. Please wait 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders:   false,
+});
+
+/**
+ * URL report ke liye limit.
+ * 10 reports per hour per IP — spam reports se bachao.
+ */
+export const reportLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max:      10,
+  message:  { error: 'Too many reports. Please wait an hour.' },
   standardHeaders: true,
   legacyHeaders:   false,
 });

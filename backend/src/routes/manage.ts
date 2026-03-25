@@ -48,11 +48,11 @@ router.get('/:code', async (req: Request, res: Response) => {
     return res.json({
       code:        url.shortUrl,
       short_url:   `${process.env.BASE_URL}/${url.shortUrl}`,
-      long_url:    url.longUrl,
+      long_url:    url.passwordHash ? '••••••••' : url.longUrl,
       status:      url.status,
       expires_at:  url.expiresAt,
       created_at:  url.createdAt,
-      og_title:    url.ogTitle,
+      og_title:    url.passwordHash ? null : url.ogTitle,
       click_count: url._count.analytics,
       has_password: !!url.passwordHash,
     });
@@ -93,6 +93,7 @@ router.get('/', async (req: Request, res: Response) => {
         select: {
           shortUrl: true, longUrl: true, status: true,
           expiresAt: true, createdAt: true, ogTitle: true, ogImage: true,
+          passwordHash: true,
           _count: { select: { analytics: true } },
         },
         orderBy: { createdAt: 'desc' },
@@ -105,12 +106,13 @@ router.get('/', async (req: Request, res: Response) => {
       urls: urls.map((u: typeof urls[number]) => ({
         code:           u.shortUrl,
         short_url:      `${process.env.BASE_URL}/${u.shortUrl}`,
-        long_url:       u.longUrl,
+        long_url:       u.passwordHash ? '••••••••' : u.longUrl,
         status:         u.status,
         expires_at:     u.expiresAt,
         created_at:     u.createdAt,
-        og_title:       u.ogTitle,
+        og_title:       u.passwordHash ? null : u.ogTitle,
         click_count:    u._count.analytics,
+        has_password:   !!u.passwordHash,
       })),
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
     });

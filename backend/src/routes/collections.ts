@@ -51,7 +51,7 @@ publicRouter.get('/@:username', async (req: Request, res: Response) => {
       include: {
         links: {
           where:   { url: { status: 'active' } },
-          include: { url: { select: { shortUrl: true, longUrl: true, ogTitle: true, ogImage: true } } },
+          include: { url: { select: { shortUrl: true, longUrl: true, ogTitle: true, ogImage: true, passwordHash: true } } },
           orderBy: { position: 'asc' },
         },
       },
@@ -59,20 +59,19 @@ publicRouter.get('/@:username', async (req: Request, res: Response) => {
 
     if (!collection) return res.status(404).json({ error: 'Collection not found' });
 
-    // JSON response — frontend HTML render karega
-    // Ya simple HTML serve karo agar frontend nahi hai
     return res.json({
       slug:        collection.slug,
       title:       collection.title,
       description: collection.description,
       theme:       collection.theme,
       links: collection.links.map((l) => ({
-        id:        l.id.toString(),
-        label:     l.label,
-        short_url: `${process.env.BASE_URL}/${l.url.shortUrl}`,
-        og_title:  l.url.ogTitle,
-        og_image:  l.url.ogImage,
-        position:  l.position,
+        id:           l.id.toString(),
+        label:        l.label,
+        short_url:    `${process.env.BASE_URL}/${l.url.shortUrl}`,
+        og_title:     l.url.passwordHash ? null : l.url.ogTitle,
+        og_image:     l.url.passwordHash ? null : l.url.ogImage,
+        has_password: !!l.url.passwordHash,
+        position:     l.position,
       })),
     });
   } catch (err) {
