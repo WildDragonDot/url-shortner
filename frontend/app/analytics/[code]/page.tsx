@@ -9,7 +9,7 @@ import {
   ArrowLeft, Globe, Monitor, Calendar, MousePointerClick, 
   TrendingUp, MapPin, Smartphone, Clock, ExternalLink, Copy,
   BarChart3, Activity, QrCode, Download, Lock, AlertCircle, Edit2, Trash2, ToggleLeft, ToggleRight,
-  Zap, Route, Tag, Share2, Users, Eye
+  Zap, Route, Tag, Share2
 } from 'lucide-react';
 import Link from 'next/link';
 import { QRCodeSVG } from 'qrcode.react';
@@ -18,21 +18,78 @@ import QRCustomizer from '@/components/QRCustomizer';
 const COLORS = ['#3b82f6', '#60a5fa', '#93c5fd', '#10b981', '#f59e0b', '#ef4444'];
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
+interface UrlInfo {
+  code: string;
+  long_url: string;
+  short_url?: string;
+  click_count?: number;
+  status: string;
+  created_at: string;
+  expires_at?: string;
+  has_password?: boolean;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+}
+
+interface AnalyticsSummary {
+  total_clicks?: number;
+  unique_clicks?: number;
+  clicks_today?: number;
+  clicks_this_week?: number;
+  clicks_this_month?: number;
+}
+
+interface BreakdownItem {
+  label?: string;
+  count: number;
+}
+
+interface TimeseriesItem {
+  date?: string;
+  period?: string;
+  clicks?: number;
+  count?: number;
+}
+
+interface AbTestVariant {
+  label?: string;
+  weight: number;
+  url: string;
+}
+
+interface AbTest {
+  variants?: AbTestVariant[];
+}
+
+interface RoutingRule {
+  rule_type: string;
+  condition: string;
+  priority: number;
+  target_url: string;
+}
+
+interface CountryItem { country: string; count: number; }
+interface DeviceItem { device: string; count: number; }
+interface BrowserItem { browser: string; count: number; }
+interface OsItem { os: string; count: number; }
+interface ReferrerItem { referrer: string; count: number; }
+
 export default function AnalyticsPage() {
   const params = useParams();
   const router = useRouter();
   const code = params.code as string;
 
-  const [urlInfo, setUrlInfo] = useState<any>(null);
-  const [summary, setSummary] = useState<any>(null);
-  const [countryData, setCountryData] = useState<any[]>([]);
-  const [deviceData, setDeviceData] = useState<any[]>([]);
-  const [browserData, setBrowserData] = useState<any[]>([]);
-  const [osData, setOsData] = useState<any[]>([]);
-  const [referrerData, setReferrerData] = useState<any[]>([]);
-  const [timeseriesData, setTimeseriesData] = useState<any[]>([]);
-  const [abTest, setAbTest] = useState<any>(null);
-  const [routingRules, setRoutingRules] = useState<any[]>([]);
+  const [urlInfo, setUrlInfo] = useState<UrlInfo | null>(null);
+  const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
+  const [countryData, setCountryData] = useState<CountryItem[]>([]);
+  const [deviceData, setDeviceData] = useState<DeviceItem[]>([]);
+  const [browserData, setBrowserData] = useState<BrowserItem[]>([]);
+  const [osData, setOsData] = useState<OsItem[]>([]);
+  const [referrerData, setReferrerData] = useState<ReferrerItem[]>([]);
+  const [timeseriesData, setTimeseriesData] = useState<TimeseriesItem[]>([]);
+  const [abTest, setAbTest] = useState<AbTest | null>(null);
+  const [routingRules, setRoutingRules] = useState<RoutingRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -49,7 +106,7 @@ export default function AnalyticsPage() {
   const fetchUrlInfo = async () => {
     try {
       const res = await urlAPI.getAll(1, 100);
-      const url = res.data.urls?.find((u: any) => u.code === code);
+      const url = res.data.urls?.find((u: UrlInfo) => u.code === code);
       if (url) {
         setUrlInfo(url);
         setEditForm({
@@ -57,7 +114,7 @@ export default function AnalyticsPage() {
           expires_at: url.expires_at ? new Date(url.expires_at).toISOString().slice(0, 16) : ''
         });
       }
-    } catch (err) {
+    } catch (_err) {
       // Failed to fetch URL info silently
     }
   };
@@ -68,7 +125,7 @@ export default function AnalyticsPage() {
       await urlAPI.delete(code);
       toast.success('✅ URL deleted successfully');
       router.push('/dashboard');
-    } catch (err: any) {
+    } catch (_err) {
       toast.error('❌ Failed to delete URL');
     }
   };
@@ -78,7 +135,7 @@ export default function AnalyticsPage() {
       await urlAPI.toggle(code);
       toast.success('✅ Status updated');
       fetchUrlInfo();
-    } catch (err: any) {
+    } catch (_err) {
       toast.error('❌ Failed to update status');
     }
   };
@@ -93,7 +150,7 @@ export default function AnalyticsPage() {
       toast.success('✅ URL updated successfully');
       setShowEditModal(false);
       fetchUrlInfo();
-    } catch (err: any) {
+    } catch (_err) {
       toast.error('❌ Failed to update URL');
     }
   };
@@ -104,9 +161,9 @@ export default function AnalyticsPage() {
       try {
         const abTestRes = await abTestAPI.get(code);
         setAbTest(abTestRes.data);
-      } catch (err: any) {
+      } catch (err: unknown) {
         // No A/B test configured - that's okay
-        if (err.response?.status !== 404) {
+        if ((err as { response?: { status?: number } }).response?.status !== 404) {
           // A/B test fetch failed silently
         }
       }
@@ -115,10 +172,10 @@ export default function AnalyticsPage() {
       try {
         const routingRes = await routingAPI.getAll(code);
         setRoutingRules(routingRes.data || []);
-      } catch (err: any) {
+      } catch (_err) {
         // Routing rules fetch failed silently
       }
-    } catch (err) {
+    } catch (_err) {
       // Advanced features fetch failed silently
     }
   };
@@ -141,33 +198,33 @@ export default function AnalyticsPage() {
       ]);
 
       // Transform breakdown data - backend returns 'label' not specific keys
-      setCountryData((countryRes.data || []).filter((item: any) => item.label && item.label !== 'Unknown').map((item: any) => ({
-        country: item.label,
+      setCountryData((countryRes.data || []).filter((item: BreakdownItem) => item.label && item.label !== 'Unknown').map((item: BreakdownItem) => ({
+        country: item.label!,
         count: item.count
       })));
       
-      setDeviceData((deviceRes.data || []).filter((item: any) => item.label && item.label !== 'Unknown').map((item: any) => ({
-        device: item.label,
+      setDeviceData((deviceRes.data || []).filter((item: BreakdownItem) => item.label && item.label !== 'Unknown').map((item: BreakdownItem) => ({
+        device: item.label!,
         count: item.count
       })));
       
-      setBrowserData((browserRes.data || []).filter((item: any) => item.label && item.label !== 'Unknown').map((item: any) => ({
-        browser: item.label,
+      setBrowserData((browserRes.data || []).filter((item: BreakdownItem) => item.label && item.label !== 'Unknown').map((item: BreakdownItem) => ({
+        browser: item.label!,
         count: item.count
       })));
 
-      setOsData((osRes.data || []).filter((item: any) => item.label && item.label !== 'Unknown').map((item: any) => ({
-        os: item.label,
+      setOsData((osRes.data || []).filter((item: BreakdownItem) => item.label && item.label !== 'Unknown').map((item: BreakdownItem) => ({
+        os: item.label!,
         count: item.count
       })));
 
-      setReferrerData((referrerRes.data || []).map((item: any) => ({
+      setReferrerData((referrerRes.data || []).map((item: BreakdownItem) => ({
         referrer: (!item.label || item.label === 'null' || item.label === 'Unknown') ? 'Direct' : item.label,
         count: item.count
       })));
       
       setTimeseriesData(timeseriesRes.data || []);
-    } catch (err: any) {
+    } catch (_err: unknown) {
       toast.error('Failed to load analytics');
     } finally {
       setLoading(false);
@@ -190,8 +247,8 @@ export default function AnalyticsPage() {
           url: shortUrl,
         });
         toast.success('✅ Shared successfully!');
-      } catch (err: any) {
-        if (err.name !== 'AbortError') {
+      } catch (err: unknown) {
+        if ((err as { name?: string }).name !== 'AbortError') {
           toast.error('Failed to share');
         }
       }
@@ -239,7 +296,7 @@ export default function AnalyticsPage() {
   const clicksToday = summary.clicks_today || 0;
   const clicksThisWeek = summary.clicks_this_week || 0;
   const clicksThisMonth = summary.clicks_this_month || 0;
-  const last7DaysClicks = timeseriesData.reduce((sum, d) => sum + (d.clicks || 0), 0);
+  // last7DaysClicks removed (unused)
 
   // Calculate click rate
   const clickRate = urlInfo && urlInfo.created_at 
@@ -256,13 +313,13 @@ export default function AnalyticsPage() {
       ['Clicks This Month', clicksThisMonth],
       [''],
       ['Date', 'Clicks'],
-      ...timeseriesData.map((d: any) => [d.date || d.period, d.clicks || d.count || 0]),
+      ...timeseriesData.map((d: TimeseriesItem) => [d.date || d.period, d.clicks || d.count || 0]),
       [''],
       ['Country', 'Clicks'],
-      ...countryData.map((d: any) => [d.country, d.count]),
+      ...countryData.map((d: CountryItem) => [d.country, d.count]),
       [''],
       ['Device', 'Clicks'],
-      ...deviceData.map((d: any) => [d.device, d.count]),
+      ...deviceData.map((d: DeviceItem) => [d.device, d.count]),
     ];
     const csv = rows.map(r => r.join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -662,7 +719,7 @@ export default function AnalyticsPage() {
                         cx="50%"
                         cy="50%"
                         outerRadius={80}
-                        label={(props: any) => `${props.device}: ${(props.percent * 100).toFixed(0)}%`}
+                        label={({ name, percent }: { name?: string; percent?: number }) => `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`}
                       >
                         {deviceData.map((_, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -704,7 +761,7 @@ export default function AnalyticsPage() {
                         layout="horizontal"
                         verticalAlign="bottom"
                         align="center"
-                        formatter={(value, entry: any) => `${entry.payload.device}: ${entry.payload.count}`}
+                        formatter={(value, entry) => { const p = entry.payload as DeviceItem | undefined; return `${p?.device}: ${p?.count}`; }}
                       />
                       <Tooltip />
                     </RadialBarChart>
@@ -796,7 +853,7 @@ export default function AnalyticsPage() {
                         cx="50%"
                         cy="50%"
                         outerRadius={100}
-                        label={(entry: any) => `${entry.browser}: ${entry.count}`}
+                        label={({ name, value }: { name?: string; value?: number }) => `${name}: ${value}`}
                       >
                         {browserData.slice(0, 6).map((_, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -901,7 +958,7 @@ export default function AnalyticsPage() {
                   </p>
                   
                   <div className="space-y-3">
-                    {abTest.variants?.map((variant: any, index: number) => (
+                    {abTest.variants?.map((variant: AbTestVariant, index: number) => (
                       <div key={index} className="p-3 bg-slate-50 rounded-lg">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-semibold text-slate-900">
@@ -944,7 +1001,7 @@ export default function AnalyticsPage() {
                   </p>
                   
                   <div className="space-y-3">
-                    {routingRules.slice(0, 5).map((rule: any, index: number) => (
+                    {routingRules.slice(0, 5).map((rule: RoutingRule, index: number) => (
                       <div key={index} className="p-3 bg-slate-50 rounded-lg">
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-2">

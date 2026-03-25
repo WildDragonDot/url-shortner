@@ -17,16 +17,17 @@ const urlSchema = z.object({
     .min(1, 'URL is required')
     .url('Please enter a valid URL')
     .max(2048, 'URL is too long (max 2048 characters)'),
-  alias: z.string()
-    .min(3, 'Alias must be at least 3 characters')
-    .max(16, 'Alias must be at most 16 characters')
-    .regex(/^[a-zA-Z0-9_-]*$/, 'Alias can only contain letters, numbers, hyphens, and underscores')
-    .optional()
-    .or(z.literal('')),
-  password: z.string()
-    .min(4, 'Password must be at least 4 characters')
-    .optional()
-    .or(z.literal('')),
+  alias: z.union([
+    z.literal(''),
+    z.string()
+      .min(3, 'Alias must be at least 3 characters')
+      .max(16, 'Alias must be at most 16 characters')
+      .regex(/^[a-zA-Z0-9_-]+$/, 'Alias can only contain letters, numbers, hyphens, and underscores'),
+  ]),
+  password: z.union([
+    z.literal(''),
+    z.string().min(4, 'Password must be at least 4 characters'),
+  ]),
   expiresAt: z.string().optional().or(z.literal('')),
 });
 
@@ -85,7 +86,7 @@ export default function URLShortener() {
     reset,
   } = useForm<URLFormData>({
     resolver: zodResolver(urlSchema),
-    mode: 'onBlur',
+    mode: 'onChange',
   });
 
 
@@ -119,7 +120,13 @@ export default function URLShortener() {
       reset();
       setShowAdvanced(false);
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to create short URL');
+      const data = err.response?.data;
+      if (data?.details?.length) {
+        // Backend Zod validation errors — pehla field ka message dikhao
+        toast.error(data.details[0].message);
+      } else {
+        toast.error(data?.error || 'Failed to create short URL');
+      }
     } finally {
       setLoading(false);
     }
