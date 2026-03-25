@@ -95,7 +95,7 @@ app.use(
     },
     credentials:      true,  // Cookies aur Authorization headers allow karo
     methods:          ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders:   ['Content-Type', 'Authorization'],
+    allowedHeaders:   ['Content-Type', 'Authorization', 'Cache-Control'],
     exposedHeaders:   ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
     maxAge:           86400, // Preflight cache: 24 hours
   })
